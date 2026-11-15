@@ -9,10 +9,13 @@ package dhcplb
 
 import (
 	"errors"
-	"github.com/golang/glog"
 	"hash/fnv"
+	"net"
 	"sync"
 	"sync/atomic"
+
+	"github.com/golang/glog"
+	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
 type modulo struct {
@@ -77,4 +80,9 @@ func (m *modulo) UpdateStableServerList(list []*DHCPServer) error {
 
 func (m *modulo) UpdateRCServerList(list []*DHCPServer) error {
 	return m.UpdateServerList("rc", list, &m.rc)
+}
+
+// ValidateRelayReply accepts all Relay-Replies.
+func (m *modulo) ValidateRelayReply(_ *net.UDPAddr, _ dhcpv6.DHCPv6) error {
+	return nil
 }

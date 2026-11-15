@@ -10,10 +10,12 @@ package dhcplb
 import (
 	"errors"
 	"hash/fnv"
+	"net"
 	"sync"
 	"sync/atomic"
 
 	"github.com/golang/glog"
+	"github.com/insomniacslk/dhcp/dhcpv6"
 )
 
 type roundRobin struct {
@@ -94,4 +96,8 @@ func (rr *roundRobin) UpdateStableServerList(list []*DHCPServer) error {
 
 func (rr *roundRobin) UpdateRCServerList(list []*DHCPServer) error {
 	return rr.UpdateServerList("rc", list, &rr.rc)
+}
+
+func (rr *roundRobin) ValidateRelayReply(_ *net.UDPAddr, _ dhcpv6.DHCPv6) error {
+	return nil
 }

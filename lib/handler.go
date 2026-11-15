@@ -34,6 +34,7 @@ const (
 	ErrNoServer  = "E_NO_SERVER"
 	ErrConnRate  = "E_CONN_RATE"
 	ErrNoHandler = "E_NO_HANDLER"
+	ErrBadReply  = "E_BAD_RELAY_REPLY"
 )
 
 func (s *Server) handleConnection(ctx context.Context) {
@@ -303,6 +304,11 @@ func (s *Server) handleV6RelayRepl(start time.Time, packet dhcpv6.DHCPv6, peer *
 	if err != nil {
 		glog.Errorf("Failed to decapsulate packet, drop due to %s", err)
 		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrParse, err)
+		return
+	}
+	if err := s.config.Algorithm.ValidateRelayReply(peer, packet); err != nil {
+		glog.Errorf("Dropping relay-reply from %s: %s", peer, err)
+		s.logger.LogErr(start, nil, packet.ToBytes(), peer, ErrBadReply, err)
 		return
 	}
 	peerAddr := packet.(*dhcpv6.RelayMessage).PeerAddr

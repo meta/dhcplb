@@ -33,6 +33,7 @@ type DHCPBalancingAlgorithm interface {
 	UpdateStableServerList(list []*DHCPServer) error
 	UpdateRCServerList(list []*DHCPServer) error
 	SetRCRatio(ratio uint32)
+	ValidateRelayReply(peer *net.UDPAddr, packet dhcpv6.DHCPv6) error
 	// An unique name for the algorithm, this string can be used in the
 	// configuration file, in the section where the algorithm is selecetd.
 	Name() string
