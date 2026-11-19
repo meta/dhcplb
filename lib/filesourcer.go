@@ -121,11 +121,16 @@ func (fs *FileSourcer) GetServersFromTier(path string) ([]*DHCPServer, error) {
 						ip = addr
 						break
 					}
-					if fs.version == 6 && addr.To16() != nil {
+					// To16 is also non-nil for IPv4 addresses, so check To4.
+					if fs.version == 6 && addr.To4() == nil {
 						ip = addr
 						break
 					}
 				}
+			}
+			if ip == nil {
+				glog.Errorf("No IPv%d address found for %s", fs.version, hostname)
+				continue
 			}
 		}
 		server := NewDHCPServer(hostname, ip, int(port))
