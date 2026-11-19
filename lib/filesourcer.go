@@ -114,24 +114,25 @@ func (fs *FileSourcer) GetServersFromTier(path string) ([]*DHCPServer, error) {
 				glog.Errorf("Can't resolve IPv4 for %s", hostname)
 				continue
 			}
-			for i := range ips {
-				addr := net.ParseIP(ips[i])
-				if addr != nil {
-					if fs.version == 4 && addr.To4() != nil {
-						ip = addr
-						break
-					}
-					if fs.version == 6 && addr.To16() != nil {
-						ip = addr
-						break
-					}
-				}
+			ip = addressForVersion(ips, fs.version)
+			if ip == nil {
+				glog.Errorf("No IPv%d address found for %s", fs.version, hostname)
+				continue
 			}
 		}
 		server := NewDHCPServer(hostname, ip, int(port))
 		servers = append(servers, server)
 	}
 	return servers, nil
+}
+
+func addressForVersion(addrs []string, version int) net.IP {
+	for _, a := range addrs {
+		if ip := net.ParseIP(a); ip != nil && (ip.To4() != nil) == (version == 4) {
+			return ip
+		}
+	}
+	return nil
 }
 
 func (fs *FileSourcer) watchFsnotifyEvents() {
