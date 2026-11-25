@@ -35,12 +35,12 @@ type Throttle struct {
 
 // Returns true if the rate is below maximum for the given key
 func (c *Throttle) OK(key string) (bool, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if c.maxRatePerItem <= 0 {
 		return true, nil
 	}
-
-	c.mu.Lock()
-	defer c.mu.Unlock()
 
 	// If the limiter is not in the cache for the given key
 	// check for the cache limiter. If it is below the maximum,
@@ -75,6 +75,13 @@ func (c *Throttle) setRate(MaxRatePerItem int) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.maxRatePerItem = MaxRatePerItem
+	// limiters already in the cache were created with the old rate
+	for _, key := range c.lru.Keys() {
+		if limiter, ok := c.lru.Peek(key); ok {
+			limiter.SetLimit(rate.Limit(MaxRatePerItem))
+			limiter.SetBurst(MaxRatePerItem)
+		}
+	}
 }
 
 // NewThrottle returns a Throttle struct

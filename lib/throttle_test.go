@@ -175,3 +175,50 @@ func Test_ThrottleCacheRateFail(t *testing.T) {
 
 	t.Fatalf("Throttling didn't work for cache rate limiting")
 }
+
+func Test_ThrottleSetRate(t *testing.T) {
+	const key = "test_key"
+
+	throttle, err := NewThrottle(16, -1, 1)
+	if err != nil {
+		t.Fatalf("Error creating a throttle: %v", err)
+	}
+	if ok, err := throttle.OK(key); !ok {
+		t.Fatalf("First request should not be throttled: %s", err)
+	}
+	if ok, _ := throttle.OK(key); ok {
+		t.Fatalf("Second request should be throttled at 1 req/sec")
+	}
+
+	// key is already in the cache, it must get the new rate
+	throttle.setRate(1000)
+	time.Sleep(10 * time.Millisecond)
+	if ok, err := throttle.OK(key); !ok {
+		t.Fatalf("New rate was not applied to cached key: %s", err)
+	}
+
+	throttle.setRate(1)
+	throttle.OK(key)
+	if ok, _ := throttle.OK(key); ok {
+		t.Fatalf("Lower rate was not applied to cached key")
+	}
+}
+
+func Test_ThrottleSetRateConcurrent(t *testing.T) {
+	throttle, err := NewThrottle(16, -1, 1)
+	if err != nil {
+		t.Fatalf("Error creating a throttle: %v", err)
+	}
+
+	done := make(chan struct{})
+	go func() {
+		for i := 0; i < 100; i++ {
+			throttle.setRate(i%2 + 1)
+		}
+		close(done)
+	}()
+	for i := 0; i < 100; i++ {
+		throttle.OK("test_key")
+	}
+	<-done
+}
